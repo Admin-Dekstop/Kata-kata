@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Street Vibe Marquee - Warna Merah</title>
+    <!-- Memuat Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Google Fonts: Russo One (Font yang lebih tegas dan modern) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Kustom untuk efek dan animasi */
+        body {
+            font-family: 'Russo One', sans-serif;
+            background-color: #0d0d0d; /* Background hitam pekat */
+            display: flex;
+            align-items: center; /* Menengahkan teks berjalan secara vertikal */
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Wadah luar yang membatasi area terlihat */
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        /* Wadah dalam yang berisi teks dan akan digerakkan */
+        .marquee-content {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee-right-to-left 40s linear infinite;
+            will-change: transform; 
+        }
+        
+        .marquee-container:hover .marquee-content {
+            animation-play-state: paused;
+        }
+
+        @keyframes marquee-right-to-left {
+            from {
+                transform: translateX(0%);
+            }
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        .text-block {
+            font-size: clamp(3rem, 10vw, 6rem);
+            padding-right: 5rem;
+            letter-spacing: 2px;
+        }
+
+        /* Efek Neon Merah yang disesuaikan */
+        .neon-text-red {
+            color: #ffc4c4; /* Warna dasar teks (merah muda terang) */
+            text-shadow:
+                0 0 5px #fff,
+                0 0 10px #ff4d4d,
+                0 0 20px #ff4d4d,
+                0 0 40px #ff0000,
+                0 0 70px #ff0000;
+        }
+        
+        .neon-icon {
+            height: 0.8em;
+            width: auto;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 0.5em;
+            filter: url(#svg-neon-glow-red);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="marquee-container">
+        <div id="marquee-content" class="marquee-content"></div>
+    </div>
+    
+    <svg width="0" height="0" style="position:absolute">
+      <defs>
+        <filter id="svg-neon-glow-red" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur" in="SourceGraphic" />
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+    </svg>
+
+
+    <script>
+        window.onload = () => {
+            const marqueeContent = document.getElementById('marquee-content');
+            // Teks asli Anda
+            const fullText = "Jangan panik kalau dia beda. Ingat, musang kalau lagi manja sukanya pura-pura jual mahal. Sabar sebentar, ya?";
+
+            // Ikon jejak kaki dengan warna fill merah yang sesuai
+            const iconSVG = `
+                <svg class="neon-icon" viewBox="0 0 512 512">
+                    <path fill="#ffc4c4" d="M440.7 220.4c-21-21-54.9-21-75.9 0L256 329.2 147.2 220.4c-21-21-54.9-21-75.9 0s-21 54.9 0 75.9l144.4 144.4c21 21 54.9 21 75.9 0l144.4-144.4c21-21 21-54.9 0-75.9zM128 96c0-35.3 28.7-64 64-64s64 28.7 64 64-28.7 64-64 64-64-28.7-64-64zm256 0c0-35.3 28.7-64 64-64s64 28.7 64 64-28.7 64-64 64-64-28.7-64-64z"/>
+                </svg>
+            `;
+            
+            // Duplikasi konten untuk loop yang mulus dengan class warna merah
+            const content1 = document.createElement('span');
+            content1.className = 'text-block neon-text-red'; // Menggunakan class merah
+            content1.innerHTML = fullText + iconSVG;
+
+            const content2 = document.createElement('span');
+            content2.className = 'text-block neon-text-red'; // Menggunakan class merah
+            content2.innerHTML = fullText + iconSVG;
+
+            marqueeContent.appendChild(content1);
+            marqueeContent.appendChild(content2);
+        };
+    </script>
+</body>
+</html>
