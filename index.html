@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Absensi Digital v4.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .card { background-color: white; border-radius: 12px; box-shadow: 0 4px 20px -5px rgb(0 0 0 / 0.1); }
+        .btn { transition: all 0.2s ease-in-out; }
+        .btn-primary { background-color: #4A5568; color: white; } .btn-primary:hover { background-color: #2D3748; }
+        .btn-secondary { background-color: #38A169; color: white; } .btn-secondary:hover { background-color: #2F855A; }
+        .tab { cursor: pointer; padding: 12px 24px; border-bottom: 3px solid transparent; color: #718096; }
+        .tab.active { color: #2D3748; border-bottom-color: #2D3748; font-weight: 700; }
+        #scanner-container { position: relative; width: 100%; max-width: 400px; margin: auto; border-radius: 12px; overflow: hidden; border: 4px solid #e2e8f0; }
+        .scan-line { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #48bb78, transparent); animation: scan 2.5s infinite ease-in-out; }
+        @keyframes scan { 0% { top: 0; } 50% { top: calc(100% - 3px); } 100% { top: 0; } }
+        .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: #2D3748; color: white; padding: 14px 28px; border-radius: 8px; z-index: 1000; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .toast.show { bottom: 40px; }
+        .table-hover tbody tr:hover { background-color: #f7fafc; }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+
+    <div id="app" class="w-full max-w-6xl mx-auto">
+        <!-- Halaman Utama -->
+        <div id="main-page" class="text-center py-16">
+            <div class="mb-6"><i class="fas fa-qrcode fa-5x text-gray-700"></i></div>
+            <h1 class="text-5xl font-extrabold text-gray-800 mb-3">Sistem Absensi Digital</h1>
+            <p class="text-xl text-gray-500 mb-10">Modern, Cepat, dan Terintegrasi.</p>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-5">
+                <button onclick="showPage('guru-page')" class="btn btn-primary w-full md:w-auto font-bold py-4 px-10 rounded-xl shadow-lg text-lg"><i class="fas fa-user-shield mr-3"></i> Buka Dasbor Guru</button>
+                <button onclick="showPage('siswa-page')" class="btn btn-secondary w-full md:w-auto font-bold py-4 px-10 rounded-xl shadow-lg text-lg"><i class="fas fa-id-card mr-3"></i> Lakukan Absensi</button>
+            </div>
+        </div>
+
+        <!-- Halaman Guru -->
+        <div id="guru-page" class="hidden">
+            <div class="card p-5 md:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Dasbor Guru</h2>
+                    <button onclick="showPage('main-page')" class="text-gray-500 hover:text-gray-800 text-sm font-medium">&larr; Kembali</button>
+                </div>
+                <div class="border-b border-gray-200 mb-6"><nav class="flex -mb-px"><a onclick="switchGuruTab('riwayat')" id="tab-riwayat" class="tab active">Riwayat Absensi</a><a onclick="switchGuruTab('siswa')" id="tab-siswa" class="tab">Manajemen Siswa</a></nav></div>
+                
+                <div id="content-riwayat">
+                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="relative w-full md:w-2/5"><i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="text" id="searchInput" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full p-3 pl-12 border rounded-lg focus:ring-2 focus:ring-gray-400"></div>
+                        <button onclick="fetchAndRenderRiwayat()" class="btn btn-primary text-sm font-bold py-3 px-5 rounded-lg w-full md:w-auto"><i class="fas fa-sync-alt mr-2"></i> Segarkan Data</button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border"><table class="w-full text-left text-sm table-hover"><thead class="bg-gray-100 text-gray-600 uppercase tracking-wider"><tr class="border-b"><th class="p-4">Nama</th><th class="p-4">Kelas</th><th class="p-4">Tanggal</th><th class="p-4">Jam Masuk</th><th class="p-4">Jam Keluar</th><th class="p-4">Kehadiran</th></tr></thead><tbody id="riwayatAbsensiBody"></tbody></table><div id="riwayatLoading" class="text-center p-10 hidden"><i class="fas fa-spinner fa-spin fa-3x text-gray-700"></i><p class="mt-3 text-gray-500">Memuat data...</p></div></div>
+                </div>
+                <div id="content-siswa" class="hidden">
+                    <div class="mb-8 p-6 bg-gray-50 rounded-lg border">
+                        <h3 class="text-xl font-semibold mb-3 text-gray-700">Tambah Siswa Baru</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <input id="namaSiswa" type="text" placeholder="Nama Lengkap Siswa" class="p-3 border rounded-lg">
+                            <input id="kelasSiswa" type="text" placeholder="Kelas (Contoh: X-A)" class="p-3 border rounded-lg">
+                            <button onclick="tambahSiswa()" class="btn btn-primary font-bold py-3 px-4 rounded-lg"><i class="fas fa-user-plus mr-2"></i> Tambah Siswa</button>
+                        </div>
+                    </div>
+                    <div><h3 class="text-xl font-semibold mb-3 text-gray-700">Daftar Siswa</h3><div id="daftarSiswa" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Halaman Siswa -->
+        <div id="siswa-page" class="hidden"><div class="card p-6 md:p-8 max-w-lg mx-auto"><div class="flex items-center justify-between mb-6"><h2 class="text-3xl font-bold text-gray-800">Lakukan Absensi</h2><button onclick="showPage('main-page'); stopScan();" class="text-gray-500 hover:text-gray-800 text-sm font-medium">&larr; Kembali</button></div><div id="scanner-view"><div id="scanner-container" class="mb-4 bg-gray-800"><video id="scanner-video" class="w-full h-auto"></video><div class="scan-line"></div></div><p id="scan-feedback" class="text-gray-600 min-h-[24px] flex items-center justify-center text-lg"></p><button onclick="toggleManualForm(true)" class="mt-4 text-sm text-gray-600 hover:text-gray-800">Tidak bawa QR Code? <span class="font-semibold underline">Absen Manual</span></button></div><div id="manual-form-view" class="hidden text-left"><div id="manual-form-content"><h3 class="text-2xl font-bold mb-4 text-center text-gray-800">Absen Manual</h3><div class="mb-4"><label for="manualNamaSiswa" class="block text-sm font-medium text-gray-700 mb-2">Pilih Nama Anda:</label><select id="manualNamaSiswa" class="w-full p-3 border rounded-lg bg-gray-50"></select></div><button onclick="handleManualAbsen()" class="btn btn-secondary w-full font-bold py-3 px-4 rounded-lg text-base"><i class="fas fa-paper-plane mr-2"></i> Kirim Absensi</button><button onclick="toggleManualForm(false)" class="mt-4 w-full text-center text-sm text-gray-600 hover:text-gray-800">Kembali ke Scan QR</button></div><div id="manual-feedback" class="text-gray-600 min-h-[48px] flex items-center justify-center text-lg hidden"></div></div></div></div>
+        
+        <!-- Modal & Toast -->
+        <div id="qr-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="card p-8 text-center max-w-sm w-full"><h3 id="modal-nama" class="text-2xl font-bold mb-2"></h3><p id="modal-kelas" class="text-gray-600 mb-4"></p><canvas id="qr-canvas" class="mx-auto border rounded-lg"></canvas><div class="mt-6 flex gap-4"><button onclick="printQR()" class="btn bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cetak</button><button onclick="closeModal()" class="btn bg-red-500 text-white font-bold py-2 px-4 rounded-lg">Tutup</button></div></div></div>
+        <div id="toast-notification" class="toast"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        const state = {
+            siswa: [],
+            riwayatAbsensi: [],
+            // URL ANDA SUDAH DIMASUKKAN DI SINI
+            apiUrl: 'https://script.google.com/macros/s/AKfycbxCfOQKH5I-0ZDwJjrtS0R0tiw_FiRn_G05xzAP_kHEzYt75QmubrTVZP1gy0UnLotM/exec',
+            currentPage: 'main-page',
+            scanner: null,
+            isScanning: false,
+        };
+
+        function initializeApp() {
+            loadFromLocalStorage();
+            renderDaftarSiswa();
+            showPage('main-page');
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('#app > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+            state.currentPage = pageId;
+            if (pageId === 'siswa-page') { populateSiswaDropdown(); toggleManualForm(false); } 
+            else if (pageId === 'guru-page') { switchGuruTab('riwayat'); } 
+            else { stopScan(); }
+        }
+        
+        function switchGuruTab(tabName) {
+            ['riwayat', 'siswa'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.remove('active');
+                document.getElementById(`content-${t}`).classList.add('hidden');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            if (tabName === 'riwayat') { fetchAndRenderRiwayat(); }
+        }
+
+        async function fetchAndRenderRiwayat() {
+            const loadingDiv = document.getElementById('riwayatLoading');
+            const tbody = document.getElementById('riwayatAbsensiBody');
+            loadingDiv.classList.remove('hidden');
+            tbody.innerHTML = '';
+            try {
+                const response = await fetch(state.apiUrl);
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                const result = await response.json();
+                if (result.status === 'sukses') { state.riwayatAbsensi = result.data; renderRiwayat(state.riwayatAbsensi); } 
+                else { throw new Error(result.pesan || 'Gagal mengambil data.'); }
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-600 font-medium">Error: ${error.message}</td></tr>`;
+            } finally {
+                loadingDiv.classList.add('hidden');
+            }
+        }
+
+        function renderRiwayat(data) {
+            const tbody = document.getElementById('riwayatAbsensiBody');
+            tbody.innerHTML = '';
+            if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-500">Belum ada data absensi.</td></tr>'; return; }
+            data.forEach(absen => {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.innerHTML = `<td class="p-4">${absen.Nama||''}</td><td class="p-4">${absen.Kelas||''}</td><td class="p-4">${absen.Tanggal||''}</td><td class="p-4">${absen['Jam Masuk']||''}</td><td class="p-4">${absen['Jam Keluar']||''}</td><td class="p-4"><span class="px-3 py-1 text-xs font-semibold rounded-full ${absen.Kehadiran==='Hadir'?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${absen.Kehadiran||''}</span></td>`;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function filterRiwayat() { const searchTerm = document.getElementById('searchInput').value.toLowerCase(); const filteredData = state.riwayatAbsensi.filter(absen => (absen.Nama || '').toLowerCase().includes(searchTerm)); renderRiwayat(filteredData); }
+        function showToast(message, duration = 3000) { const toast = document.getElementById('toast-notification'); toast.textContent = message; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, duration); }
+        function tambahSiswa() { const nama = document.getElementById('namaSiswa').value.trim(); const kelas = document.getElementById('kelasSiswa').value.trim(); if (nama && kelas) { const id = 'local-' + Date.now(); state.siswa.push({ id, nama, kelas }); saveSiswaToLocalStorage(); renderDaftarSiswa(); document.getElementById('namaSiswa').value = ''; document.getElementById('kelasSiswa').value = ''; showToast('Siswa berhasil ditambahkan!'); } else { alert('Nama dan Kelas tidak boleh kosong!'); } }
+        function renderDaftarSiswa() { const container = document.getElementById('daftarSiswa'); container.innerHTML = ''; if (state.siswa.length === 0) { container.innerHTML = '<p class="text-gray-500 col-span-full text-center p-5">Belum ada data siswa.</p>'; return; } state.siswa.forEach(siswa => { const card = document.createElement('div'); card.className = 'card p-4 flex flex-col items-start gap-3 border'; card.innerHTML = `<div class="w-full"> <p class="font-bold text-gray-800">${siswa.nama}</p> <p class="text-sm text-gray-500">${siswa.kelas}</p> </div> <div class="flex gap-2 w-full"> <button onclick="showQR('${siswa.id}')" class="btn text-sm flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-3 rounded-lg"><i class="fas fa-qrcode mr-2"></i>QR</button> <button onclick="hapusSiswa('${siswa.id}')" class="btn text-sm flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 px-3 rounded-lg"><i class="fas fa-trash-alt mr-2"></i>Hapus</button> </div>`; container.appendChild(card); }); }
+        function hapusSiswa(id) { if (confirm('Yakin ingin menghapus siswa ini?')) { state.siswa = state.siswa.filter(s => s.id !== id); saveSiswaToLocalStorage(); renderDaftarSiswa(); } }
+        function showQR(id) { const siswa = state.siswa.find(s => s.id === id); if (siswa) { document.getElementById('modal-nama').textContent = siswa.nama; document.getElementById('modal-kelas').textContent = siswa.kelas; new QRious({ element: document.getElementById('qr-canvas'), value: JSON.stringify({ nama: siswa.nama, kelas: siswa.kelas }), size: 256, padding: 16 }); document.getElementById('qr-modal').classList.remove('hidden'); } }
+        function printQR() { const canvas = document.getElementById('qr-canvas'); const nama = document.getElementById('modal-nama').textContent; const kelas = document.getElementById('modal-kelas').textContent; const printWindow = window.open('', '_blank'); printWindow.document.write(`<html><head><title>Cetak QR Code</title><style>body{font-family:sans-serif;text-align:center;padding-top:50px} h2,p{margin:5px 0}</style></head><body><h2>${nama}</h2><p>${kelas}</p><img src="${canvas.toDataURL()}"/></body></html>`); printWindow.document.close(); printWindow.print(); }
+        function closeModal() { document.getElementById('qr-modal').classList.add('hidden'); }
+        function startScan() { if (state.isScanning) return; state.isScanning = true; const video = document.getElementById('scanner-video'); const feedback = document.getElementById('scan-feedback'); feedback.innerHTML = 'Arahkan kamera ke QR Code Anda'; navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => { video.srcObject = stream; video.play(); state.scanner = requestAnimationFrame(tick); }).catch(err => { console.error("Camera Error:", err); feedback.innerHTML = '<span class="text-red-500">Gagal mengakses kamera.</span>'; state.isScanning = false; }); }
+        function stopScan() { if (state.scanner) cancelAnimationFrame(state.scanner); const video = document.getElementById('scanner-video'); if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); video.srcObject = null; } state.isScanning = false; }
+        function tick() { if (!state.isScanning) return; const video = document.getElementById('scanner-video'); if (video.readyState === video.HAVE_ENOUGH_DATA) { const canvasElement = document.createElement('canvas'); canvasElement.height = video.videoHeight; canvasElement.width = video.videoWidth; const canvas = canvasElement.getContext('2d'); canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height); const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height); const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" }); if (code && code.data) { stopScan(); try { const parsedData = JSON.parse(code.data); sendAbsensiData(parsedData); } catch (e) { console.error("Gagal mem-parsing data QR:", e); const feedback = document.getElementById('scan-feedback'); feedback.innerHTML = '<span class="text-red-500 font-bold">QR Code tidak valid.</span>'; setTimeout(() => startScan(), 2000); } return; } } state.scanner = requestAnimationFrame(tick); }
+        async function sendAbsensiData(data, feedbackElement) { const feedback = feedbackElement || document.getElementById('scan-feedback'); feedback.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Mengirim data...'; try { if (!data.nama || !data.kelas) throw new Error("Format data tidak valid."); fetch(state.apiUrl, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data), redirect: 'follow' }); showToast(`Absensi untuk ${data.nama} sedang diproses!`, 3000); feedback.innerHTML = `<span class="text-green-600 font-bold text-xl"><i class="fas fa-check-circle mr-2"></i>Terima kasih, ${data.nama}!</span>`; setTimeout(() => { showPage('main-page'); }, 3000); } catch (e) { console.error("Error:", e); feedback.innerHTML = `<span class="text-red-500 font-bold">${e.message}</span>`; if(!document.getElementById('scanner-view').classList.contains('hidden')){ setTimeout(() => startScan(), 3000); } } }
+        function toggleManualForm(showManual) { const scannerView = document.getElementById('scanner-view'); const manualView = document.getElementById('manual-form-view'); if (showManual) { stopScan(); scannerView.classList.add('hidden'); manualView.classList.remove('hidden'); } else { const manualFormContent = document.getElementById('manual-form-content'); const manualFeedback = document.getElementById('manual-feedback'); manualFormContent.classList.remove('hidden'); manualFeedback.classList.add('hidden'); manualFeedback.innerHTML = ''; manualView.classList.add('hidden'); scannerView.classList.remove('hidden'); startScan(); } }
+        function populateSiswaDropdown() { const select = document.getElementById('manualNamaSiswa'); select.innerHTML = '<option value="" disabled selected>-- Pilih Nama --</option>'; state.siswa.forEach(siswa => { const option = document.createElement('option'); option.value = siswa.id; option.textContent = `${siswa.nama} (${siswa.kelas})`; select.appendChild(option); }); }
+        function handleManualAbsen() { const select = document.getElementById('manualNamaSiswa'); const siswaId = select.value; if (!siswaId) { alert('Silakan pilih nama Anda terlebih dahulu.'); return; } const siswa = state.siswa.find(s => s.id === siswaId); if (siswa) { const dataToSend = { nama: siswa.nama, kelas: siswa.kelas }; document.getElementById('manual-form-content').classList.add('hidden'); const manualFeedback = document.getElementById('manual-feedback'); manualFeedback.classList.remove('hidden'); sendAbsensiData(dataToSend, manualFeedback); } }
+        function saveSiswaToLocalStorage() { localStorage.setItem('absensiDataSiswa', JSON.stringify(state.siswa)); }
+        function loadFromLocalStorage() { const dataSiswa = localStorage.getItem('absensiDataSiswa'); if (dataSiswa) state.siswa = JSON.parse(dataSiswa); }
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
